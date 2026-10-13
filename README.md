@@ -1,6 +1,6 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/hero-dark.png">
-  <img src="docs/images/hero-light.png" alt="Tendedero. Screenshots, hung out to dry. Three screenshots in glass frames hang from a thin line under the macOS menu bar.">
+  <img src="docs/images/hero-light.png" alt="SSLine. Screenshots, hung out to dry. Three screenshots in glass frames hang from a thin line under the macOS menu bar.">
 </picture>
 
 <p align="center">
@@ -54,7 +54,7 @@ Rest the pointer in the menu bar and it glides down. Move away and it's gone.
 
 ## Your Desktop. Finally clear.
 
-Hand Tendedero your screenshots<sup>1</sup> and they skip the Desktop
+Hand SSLine your screenshots<sup>1</sup> and they skip the Desktop
 entirely. No floating thumbnail. No five-second wait. Each capture hangs
 the instant you take it, and only what you drag out is kept.
 
@@ -65,7 +65,7 @@ Same shortcuts. Same muscle memory. Just less mess.
 ## Private by design.
 
 No account. No network. No analytics.
-Tendedero runs entirely on your Mac, and your screenshots never leave it.
+SSLine runs entirely on your Mac, and your screenshots never leave it.
 
 <br>
 
@@ -86,13 +86,13 @@ Tendedero runs entirely on your Mac, and your screenshots never leave it.
 ## Install
 
 Download the disk image from the [latest release](../../releases/latest),
-open it and drag Tendedero to Applications. Or install it with Homebrew:
+open it and drag SSLine to Applications. Or install it with Homebrew:
 
 ```sh
-brew install --cask alejandrobujan/tap/tendedero
+brew install --cask peter-mach/tap/ssline
 ```
 
-Tendedero is signed with a Developer ID and notarized by Apple, so it opens
+SSLine is signed with a Developer ID and notarized by Apple, so it opens
 like any other app.
 
 <br>
@@ -100,10 +100,10 @@ like any other app.
 ## Build from source
 
 ```sh
-git clone git@github.com:alejandrobujan/tendedero.git
-cd tendedero
+git clone git@github.com:peter-mach/ssline.git
+cd ssline
 scripts/build-app.sh
-open build/Tendedero.app
+open build/SSLine.app
 ```
 
 Requires the Swift toolchain. Xcode is optional. With the Command Line Tools for macOS 27, the script falls back to the macOS 26 SDK they install alongside, because the new SDK needs a SwiftUI macro plugin only Xcode includes. Local builds are signed ad hoc,
@@ -130,7 +130,7 @@ Every image here, the icon included, is drawn in code by
 `scripts/make-icon.swift` and `scripts/make-readme-art.swift`.
 `scripts/make-dmg.sh` builds the disk image for releases.
 
-Translations live in `Sources/Tendedero/Resources`, one `.lproj` folder per
+Translations live in `Sources/SSLine/Resources`, one `.lproj` folder per
 language. `swift scripts/check-strings.swift` checks that none is missing.
 
 </details>
@@ -140,7 +140,7 @@ language. `swift scripts/check-strings.swift` checks that none is missing.
 ---
 
 <sub>
-1. On first launch, Tendedero offers to handle your screenshots. If you accept, it turns off the floating thumbnail and saves new screenshots to its own folder, two settings also found under Options in Cmd+Shift+5. Your previous settings are saved and restored when Tendedero quits or the option is turned off from the menu bar. Tendedero hides automatically while an app is in full screen.
+1. On first launch, SSLine offers to handle your screenshots. If you accept, it turns off the floating thumbnail and saves new screenshots to its own folder, two settings also found under Options in Cmd+Shift+5. Your previous settings are saved and restored when SSLine quits or the option is turned off from the menu bar. SSLine hides automatically while an app is in full screen.
 </sub>
 
 <br>
@@ -149,7 +149,7 @@ language. `swift scripts/check-strings.swift` checks that none is missing.
 <p align="center">
   <img src="docs/images/icon.png" width="64" height="64" alt="">
   <br>
-  <sub>The code is MIT licensed. The Tendedero name and icon are not, so forks need their own. See <a href="LICENSE">LICENSE</a>.</sub>
+  <sub>SSLine is a fork of Tendedero. The code is MIT licensed; the SSLine name and icon are its own. See <a href="LICENSE">LICENSE</a>.</sub>
   <br>
   <sub>Designed and built by <a href="https://alejandrobujan.com">Alejandro Buján</a>.</sub>
 </p>

@@ -3,8 +3,8 @@
    swift scripts/check-strings.swift to check. */
 
 /* AppDelegate */
-"Let Tendedero handle your screenshots?" = "Let Tendedero handle your screenshots?";
-"Screenshots will hang on the line the instant you take them, without the floating thumbnail, and will not pile up on your Desktop. Drag one to a folder to keep it, or discard it with the cross. You can turn this off from the menu bar, and your settings come back when Tendedero quits." = "Screenshots will hang on the line the instant you take them, without the floating thumbnail, and will not pile up on your Desktop. Drag one to a folder to keep it, or discard it with the cross. You can turn this off from the menu bar, and your settings come back when Tendedero quits.";
+"Let SSLine handle your screenshots?" = "Let SSLine handle your screenshots?";
+"Screenshots will hang on the line the instant you take them, without the floating thumbnail, and will not pile up on your Desktop. Drag one to a folder to keep it, or discard it with the cross. You can turn this off from the menu bar, and your settings come back when SSLine quits." = "Screenshots will hang on the line the instant you take them, without the floating thumbnail, and will not pile up on your Desktop. Drag one to a folder to keep it, or discard it with the cross. You can turn this off from the menu bar, and your settings come back when SSLine quits.";
 "Turn on" = "Turn on";
 "Not now" = "Not now";
 "Hide line" = "Hide line";
@@ -15,9 +15,9 @@
 "Open screenshots folder" = "Open screenshots folder";
 "Sounds" = "Sounds";
 "Open at login" = "Open at login";
-"Quit Tendedero" = "Quit Tendedero";
+"Quit SSLine" = "Quit SSLine";
 "Could not change the login setting" = "Could not change the login setting";
-"Move Tendedero to the Applications folder and try again." = "Move Tendedero to the Applications folder and try again.";
+"Move SSLine to the Applications folder and try again." = "Move SSLine to the Applications folder and try again.";
 
 /* GrabArea */
 "Copy" = "Copy";

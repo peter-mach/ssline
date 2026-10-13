@@ -1,8 +1,9 @@
 import AppKit
 import Combine
 import os
+import SwiftUI
 
-let log = Logger(subsystem: "app.tendedero.Tendedero", category: "line")
+let log = Logger(subsystem: "app.ssline.SSLine", category: "line")
 
 /// One screenshot hanging on the line.
 struct Pegged: Identifiable, Equatable {
@@ -33,11 +34,9 @@ final class Line: ObservableObject {
     @Published var revealed = false
 
     /// Card frames in window coordinates, reported by the views. The panel
-    /// uses them to only catch clicks over photos and let the rest through.
+    /// uses them to only catch the mouse where the photos hang, and to know
+    /// where a capture lands.
     var hitRects: [UUID: CGRect] = [:]
-
-    var maxItems = 8
-
 
     var soundOn: Bool {
         get { !UserDefaults.standard.bool(forKey: "soundOff") }
@@ -61,11 +60,10 @@ final class Line: ObservableObject {
               let thumb = makeThumbnail(url) else { return nil }
         var item = Pegged(url: url, thumb: thumb)
         item.flying = flying
-        items.append(item)
-        // A full line lets the oldest photo fall off the far end.
-        while liveCount > maxItems, let oldest = items.first(where: { !$0.falling }) {
-            drop(oldest.id, quietly: true)
-        }
+        // Not animated: the strip takes its new width at once, so scrolling to
+        // the new card and measuring where the capture lands see the final
+        // layout instead of one still sliding.
+        withTransaction(\.disablesAnimations, true) { items.append(item) }
         save()
         if !quietly { play("Tink", volume: 0.35) }
         return item.id
@@ -151,7 +149,7 @@ final class Line: ObservableObject {
         contentsOfFile: "/System/Library/Components/CoreAudio.component/Contents/SharedSupport/SystemSounds/dock/drag to trash.aif",
         byReference: true)
 
-    /// Whether the file lives in Tendedero's own folder. Those are discarded
+    /// Whether the file lives in SSLine's own folder. Those are discarded
     /// to the Trash, or the folder would fill up with forgotten screenshots.
     /// Files anywhere else, like the Desktop, stay where they are.
     func isInInbox(_ id: UUID) -> Bool {

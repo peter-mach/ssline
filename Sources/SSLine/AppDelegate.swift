@@ -29,7 +29,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var pinned = false
     /// A new screenshot shows itself for a moment, then tucks away.
     private var peekUntil = Date.distantPast
-    private var hotZoneSince: Date?
     /// After a click in the menu bar the line stays up there hidden until the
     /// pointer leaves the menu bar, so it does not come back over a menu.
     private var menuBarSuppressed = false
@@ -49,7 +48,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         host.sizingOptions = []
         panel = LinePanel(content: host)
         panel.placeOnScreen()
-        updateCapacity()
 
         if Inbox.isEnabled { Inbox.apply() }
         restoreSettingsOnTermination()
@@ -85,10 +83,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         NotificationCenter.default.addObserver(
             forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main
         ) { [weak self] _ in
-            MainActor.assumeIsolated {
-                self?.panel.placeOnScreen()
-                self?.updateCapacity()
-            }
+            MainActor.assumeIsolated { self?.panel.placeOnScreen() }
         }
 
         if !Inbox.wasOffered {
@@ -147,12 +142,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func offerInbox() {
         Inbox.wasOffered = true
         let alert = NSAlert()
-        alert.messageText = L("Let Tendedero handle your screenshots?")
+        alert.messageText = L("Let SSLine handle your screenshots?")
         alert.informativeText = L(
-            "Screenshots will hang on the line the instant you take them, without the floating thumbnail, and will not pile up on your Desktop. Drag one to a folder to keep it, or discard it with the cross. You can turn this off from the menu bar, and your settings come back when Tendedero quits.")
+            "Screenshots will hang on the line the instant you take them, without the floating thumbnail, and will not pile up on your Desktop. Drag one to a folder to keep it, or discard it with the cross. You can turn this off from the menu bar, and your settings come back when SSLine quits.")
         alert.addButton(withTitle: L("Turn on"))
         alert.addButton(withTitle: L("Not now"))
-        if let icon = NSImage(named: "Tendedero") ?? NSApp.applicationIconImage { alert.icon = icon }
+        if let icon = NSImage(named: "SSLine") ?? NSApp.applicationIconImage { alert.icon = icon }
         NSApp.activate(ignoringOtherApps: true)
         if alert.runModal() == .alertFirstButtonReturn { setInbox(true) }
     }
@@ -179,7 +174,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if live > lastLiveCount {
             panel.placeOnScreen(pendingScreen)
             pendingScreen = nil
-            updateCapacity()
             wanted = true
             refresh()
             reveal(peekFor: 2.5)
@@ -204,8 +198,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             pendingScreen = NSScreen.screens.first { NSMouseInRect(center, $0.frame, false) }
         }
         guard let id = line.hang(url, flying: from != nil), let from else { return }
-        // Let the line come down and lay out before measuring the landing spot.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.03) { [weak self] in
+        // Let the line come down, lay out and scroll to the new card before
+        // measuring the landing spot.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) { [weak self] in
             self?.fly(id, from: from)
         }
     }
@@ -236,18 +231,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         CaptureFlight.fall(image: image, card: card, tilt: CGFloat(item.tilt), on: screen)
     }
 
-    /// Where a card will hang, in screen coordinates, using the same layout
-    /// as the line view.
+    /// Where a card hangs, in screen coordinates, as the line view reports it.
+    /// Hit rects are flipped, measured from the top of the panel.
     private func cardFrame(for id: UUID) -> CGRect? {
-        guard let index = line.items.firstIndex(where: { $0.id == id }) else { return nil }
-        let width = panel.frame.width
-        let x = Layout.x(index: index, count: line.items.count, width: width)
-        let viewTop = Layout.ropeY(x: x, width: width) - Layout.pinAbove
-        let cardTop = viewTop + PeggedView.cardOffsetBelowTop
-        let size = PeggedView.cardSize(for: line.items[index].thumb.size)
-        return CGRect(x: panel.frame.minX + x - size.width / 2,
-                      y: panel.frame.maxY - cardTop - size.height,
-                      width: size.width, height: size.height)
+        guard let rect = line.hitRects[id] else { return nil }
+        return panel.convertToScreen(CGRect(x: rect.minX, y: panel.frame.height - rect.maxY,
+                                            width: rect.width, height: rect.height))
     }
 
     /// Decides whether the panel is ordered in at all: something to show,
@@ -313,7 +302,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             keepOpen = true
             wanted = true
             panel.placeOnScreen()
-            updateCapacity()
             refresh()
             reveal(pinned: true)
         }
@@ -321,7 +309,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func startMouseTracking() {
         guard mouseTimer == nil else { return }
-        let timer = Timer(timeInterval: 1.0 / 30.0, repeats: true) { [weak self] _ in
+        let timer = Timer(timeInterval: 1.0 / 60.0, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.tick() }
         }
         RunLoop.main.add(timer, forMode: .common)
@@ -333,11 +321,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         mouseTimer = nil
         panel.ignoresMouseEvents = true
     }
-
-    /// How long the cursor rests against the top edge before the line comes
-    /// down. Short enough to feel instant, long enough that a quick trip to
-    /// the menu bar does not trigger it.
-    private static let revealDelay: TimeInterval = 0.25
 
     /// The menu bar strip at the top of a screen. With an auto-hiding menu
     /// bar the visible frame reaches the top, so the system thickness is used.
@@ -355,7 +338,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 let p = NSEvent.mouseLocation
                 guard NSScreen.screens.contains(where: { NSMouseInRect(p, Self.menuBarBand(of: $0), false) }) else { return }
                 self.menuBarSuppressed = true
-                self.hotZoneSince = nil
                 if self.isRevealed {
                     self.pinned = false
                     self.setRevealed(false)
@@ -381,24 +363,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if !inMenuBar { menuBarSuppressed = false }
 
         guard isRevealed else {
-            // Resting in the menu bar brings the line down on that screen.
-            // Pushing against the top edge is part of it, and it also works
-            // when another display sits above and the pointer never stops.
-            if let screen = screenUnderPointer, inMenuBar, !menuBarSuppressed,
-               !FullScreen.isActive(on: screen) {
-                let since = hotZoneSince ?? now
-                hotZoneSince = since
-                if now.timeIntervalSince(since) >= Self.revealDelay {
-                    hotZoneSince = nil
-                    if panel.screen != screen {
-                        panel.placeOnScreen()
-                        updateCapacity()
-                    }
-                    refresh()
-                    reveal()
-                }
-            } else {
-                hotZoneSince = nil
+            // The app's dot, or the middle of the menu bar, brings the line
+            // down on that screen at once. The rest of the menu bar is left
+            // to menus and other status items.
+            guard let screen = screenUnderPointer, inMenuBar, !menuBarSuppressed else { return }
+            let bar = Self.menuBarBand(of: screen)
+            let centre = bar.insetBy(dx: (bar.width - 240) / 2, dy: 0)
+            let overDot = statusItem.button?.window.map { NSMouseInRect(mouse, $0.frame, false) } ?? false
+            if overDot || NSMouseInRect(mouse, centre, false), !FullScreen.isActive(on: screen) {
+                if panel.screen != screen { panel.placeOnScreen() }
+                refresh()
+                reveal()
             }
             return
         }
@@ -426,28 +401,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     /// The panel spans the whole width of the screen, so it only accepts the
-    /// mouse while the cursor is over a photo. Everywhere else, clicks go to
-    /// whatever is underneath.
+    /// mouse across the band where the photos hang, rope to lowest card edge,
+    /// which is also where the line scrolls sideways. Everywhere else, clicks
+    /// go to whatever is underneath.
     private func updateMousePassThrough(_ mouse: NSPoint) {
         guard !GrabView.isDragging else { return }
         let local = panel.convertPoint(fromScreen: mouse)
-        let flipped = CGPoint(x: local.x, y: panel.frame.height - local.y)
-        let overPhoto = line.hitRects.values.contains { $0.insetBy(dx: -4, dy: -4).contains(flipped) }
-        if panel.ignoresMouseEvents == overPhoto {
-            panel.ignoresMouseEvents = !overPhoto
+        let flippedY = panel.frame.height - local.y
+        let overStrip = line.hitRects.values.map(\.maxY).max().map { bottom in
+            flippedY >= Layout.ropeTop - 8 && flippedY <= bottom + 8
+        } ?? false
+        if panel.ignoresMouseEvents == overStrip {
+            panel.ignoresMouseEvents = !overStrip
         }
-    }
-
-    private func updateCapacity() {
-        let usable = panel.frame.width - 200
-        line.maxItems = max(3, min(12, Int(usable / Layout.spacing)))
     }
 
     // MARK: Menu bar
 
     private func setUpStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        let image = NSImage(systemSymbolName: "tshirt", accessibilityDescription: "Tendedero")
+        let image = NSImage(systemSymbolName: "circle.fill", accessibilityDescription: "SSLine")?
+            .withSymbolConfiguration(NSImage.SymbolConfiguration(pointSize: 7, weight: .black))
         image?.isTemplate = true
         statusItem.button?.image = image
         let menu = NSMenu()
@@ -499,7 +473,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(login)
 
         menu.addItem(.separator())
-        menu.addItem(ClosureMenuItem(L("Quit Tendedero"), key: "q") {
+        menu.addItem(ClosureMenuItem(L("Quit SSLine"), key: "q") {
             NSApp.terminate(nil)
         })
     }
@@ -514,7 +488,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         } catch {
             let alert = NSAlert()
             alert.messageText = L("Could not change the login setting")
-            alert.informativeText = L("Move Tendedero to the Applications folder and try again.")
+            alert.informativeText = L("Move SSLine to the Applications folder and try again.")
             NSApp.activate(ignoringOtherApps: true)
             alert.runModal()
         }

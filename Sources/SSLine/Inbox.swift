@@ -1,11 +1,11 @@
 import Foundation
 
-/// Inbox mode: Tendedero takes over where screenshots go.
+/// Inbox mode: SSLine takes over where screenshots go.
 ///
 /// It changes two macOS screenshot settings, the same ones in the Options
 /// menu of Cmd+Shift+5: the floating thumbnail is turned off, so the file is
 /// written at once instead of five seconds later, and the save location
-/// becomes Tendedero's own folder, so the Desktop only gets what you keep.
+/// becomes SSLine's own folder, so the Desktop only gets what you keep.
 ///
 /// The previous values are saved first and put back when the mode is turned
 /// off or the app quits, so macOS is never left pointing at a folder nobody
@@ -24,7 +24,7 @@ enum Inbox {
 
     static let folder: URL = {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        return base.appendingPathComponent("Tendedero/Screenshots", isDirectory: true)
+        return base.appendingPathComponent("SSLine/Screenshots", isDirectory: true)
     }()
 
     /// The user's choice, kept across launches.

@@ -1,7 +1,7 @@
 import Foundation
 
 /// Watches the folder macOS saves screenshots to and reports new ones.
-/// Tendedero never takes screenshots itself: you keep your usual shortcut
+/// SSLine never takes screenshots itself: you keep your usual shortcut
 /// (or CleanShot, or anything else) and the line just picks them up.
 final class ScreenshotWatcher {
     let folder: URL
@@ -56,7 +56,7 @@ final class ScreenshotWatcher {
         known = Set(files.map(\.path))
         let fd = open(folder.path, O_EVTONLY)
         guard fd >= 0 else {
-            NSLog("Tendedero: cannot watch \(folder.path)")
+            NSLog("SSLine: cannot watch \(folder.path)")
             return
         }
         let src = DispatchSource.makeFileSystemObjectSource(

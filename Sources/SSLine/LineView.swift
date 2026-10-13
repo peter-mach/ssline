@@ -6,20 +6,6 @@ enum Layout {
     static let spacing: CGFloat = 174
     static let cardWidth: CGFloat = 150
     static let pinAbove: CGFloat = 9.5
-
-    /// The rope hangs as a parabola from edge to edge of the screen.
-    static func sag(width: CGFloat) -> CGFloat { min(30, width * 0.018) }
-
-    static func ropeY(x: CGFloat, width: CGFloat) -> CGFloat {
-        guard width > 0 else { return ropeTop }
-        let f = x / width
-        return ropeTop + 4 * sag(width: width) * f * (1 - f)
-    }
-
-    static func x(index: Int, count: Int, width: CGFloat) -> CGFloat {
-        let total = CGFloat(max(count - 1, 0)) * spacing
-        return width / 2 - total / 2 + CGFloat(index) * spacing
-    }
 }
 
 struct LineView: View {
@@ -33,16 +19,33 @@ struct LineView: View {
 
                 if line.items.isEmpty {
                     Hint()
-                        .position(x: width / 2, y: Layout.ropeY(x: width / 2, width: width) + 34)
+                        .position(x: width / 2, y: Layout.ropeTop + 34)
                         .transition(.opacity)
                 }
 
-                ForEach(Array(line.items.enumerated()), id: \.element.id) { index, item in
-                    let x = Layout.x(index: index, count: line.items.count, width: width)
-                    let ropeY = Layout.ropeY(x: x, width: width)
-                    PeggedView(item: item, line: line)
-                        .frame(width: Layout.cardWidth, height: Layout.panelHeight - ropeY, alignment: .top)
-                        .position(x: x, y: ropeY - Layout.pinAbove + (Layout.panelHeight - ropeY) / 2)
+                ScrollViewReader { proxy in
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(alignment: .top, spacing: Layout.spacing - Layout.cardWidth) {
+                            ForEach(line.items) { item in
+                                PeggedView(item: item, line: line)
+                                    .frame(width: Layout.cardWidth, height: Layout.panelHeight - Layout.ropeTop,
+                                           alignment: .top)
+                            }
+                        }
+                        .padding(.horizontal, 50)
+                        // Scrolling to the end of the strip rather than to the
+                        // newest card keeps the padding after it on screen.
+                        .id(Self.stripID)
+                        .padding(.top, Layout.ropeTop - Layout.pinAbove)
+                        .frame(minWidth: width, minHeight: Layout.panelHeight, alignment: .top)
+                    }
+                    .scrollClipDisabled()
+                    .onChange(of: line.items.last?.id, initial: true) { _, newest in
+                        guard newest != nil else { return }
+                        // Inside onChange the strip still has its old width, so
+                        // scrolling now stops one card short of the new one.
+                        DispatchQueue.main.async { proxy.scrollTo(Self.stripID, anchor: .trailing) }
+                    }
                 }
             }
             .animation(.spring(response: 0.55, dampingFraction: 0.78), value: line.items.map(\.id))
@@ -50,13 +53,15 @@ struct LineView: View {
             // Tucked away, the whole line waits above the top edge and slides
             // out from under the menu bar, the way an auto-hiding Dock does.
             .offset(y: line.revealed ? 0 : -(Layout.panelHeight + 12))
-            .animation(line.revealed ? .spring(response: 0.42, dampingFraction: 0.82)
+            .animation(line.revealed ? .spring(response: 0.28, dampingFraction: 0.86)
                                      : .easeIn(duration: 0.22), value: line.revealed)
         }
         .onPreferenceChange(HitRectsKey.self) { rects in
             line.hitRects = rects
         }
     }
+
+    private static let stripID = "strip"
 }
 
 private struct Hint: View {
@@ -78,11 +83,8 @@ struct Rope: View {
 
     private var path: Path {
         Path { p in
-            let top = Layout.ropeTop
-            p.move(to: CGPoint(x: -20, y: top))
-            p.addQuadCurve(
-                to: CGPoint(x: width + 20, y: top),
-                control: CGPoint(x: width / 2, y: top + 2 * Layout.sag(width: width)))
+            p.move(to: CGPoint(x: -20, y: Layout.ropeTop))
+            p.addLine(to: CGPoint(x: width + 20, y: Layout.ropeTop))
         }
     }
 

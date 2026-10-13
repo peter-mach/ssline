@@ -1,6 +1,6 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../images/zh-Hans/hero-dark.png">
-  <img src="../images/zh-Hans/hero-light.png" alt="Tendedero。截图挂起来晾着。三张截图装在玻璃相框里，挂在 macOS 菜单栏下方的一根细绳上。">
+  <img src="../images/zh-Hans/hero-light.png" alt="SSLine。截图挂起来晾着。三张截图装在玻璃相框里，挂在 macOS 菜单栏下方的一根细绳上。">
 </picture>
 
 <p align="center">
@@ -56,7 +56,7 @@
 
 ## 桌面，终于清爽了
 
-把截图交给 Tendedero<sup>1</sup>，它们就完全跳过桌面。
+把截图交给 SSLine<sup>1</sup>，它们就完全跳过桌面。
 没有浮动缩略图。不用等五秒。拍下的瞬间即挂上绳，只有你拖出去的才会留下。
 
 同样的快捷键。同样的肌肉记忆。只是少了乱。
@@ -66,7 +66,7 @@
 ## 隐私是设计前提
 
 没有账号。不联网。无统计。
-Tendedero 完全在你的 Mac 上运行，截图不会离开这台电脑。
+SSLine 完全在你的 Mac 上运行，截图不会离开这台电脑。
 
 <br>
 
@@ -86,23 +86,23 @@ Tendedero 完全在你的 Mac 上运行，截图不会离开这台电脑。
 
 ## 安装
 
-从[最新发布](../../../../releases/latest)下载磁盘映像，打开后把 Tendedero 拖进「应用程序」。也可以用 Homebrew 安装：
+从[最新发布](../../../../releases/latest)下载磁盘映像，打开后把 SSLine 拖进「应用程序」。也可以用 Homebrew 安装：
 
 ```sh
-brew install --cask alejandrobujan/tap/tendedero
+brew install --cask peter-mach/tap/ssline
 ```
 
-Tendedero 已使用 Developer ID 签名并通过 Apple 公证，打开方式和其他 App 一样。
+SSLine 已使用 Developer ID 签名并通过 Apple 公证，打开方式和其他 App 一样。
 
 <br>
 
 ## 从源码构建
 
 ```sh
-git clone git@github.com:alejandrobujan/tendedero.git
-cd tendedero
+git clone git@github.com:peter-mach/ssline.git
+cd ssline
 scripts/build-app.sh
-open build/Tendedero.app
+open build/SSLine.app
 ```
 
 需要 Swift 工具链，Xcode 可选。若使用 macOS 27 的命令行工具，脚本会回退到随其一同安装的 macOS 26 SDK，因为新版 SDK 需要只有 Xcode 才带的 SwiftUI 宏插件。本地构建采用 ad-hoc 签名，所以每次重新构建后 macOS 都会再次询问桌面访问权限。
@@ -128,7 +128,7 @@ open build/Tendedero.app
 `scripts/make-icon.swift` 与 `scripts/make-readme-art.swift`。
 `scripts/make-dmg.sh` 负责构建发布用的磁盘映像。
 
-翻译文件位于 `Sources/Tendedero/Resources`，每种语言一个 `.lproj` 文件夹。
+翻译文件位于 `Sources/SSLine/Resources`，每种语言一个 `.lproj` 文件夹。
 `swift scripts/check-strings.swift` 会检查是否有遗漏。
 
 </details>
@@ -138,7 +138,7 @@ open build/Tendedero.app
 ---
 
 <sub>
-1. 首次启动时，Tendedero 会询问是否接管你的截图。如果同意，它会关闭浮动缩略图，并把新截图保存到它自己的文件夹，这两项设置也可以在 Cmd+Shift+5 的「选项」中找到。你原来的设置会被保存，并在退出 Tendedero 或从菜单栏关闭该选项时恢复。当有 App 处于全屏时，Tendedero 会自动隐藏。
+1. 首次启动时，SSLine 会询问是否接管你的截图。如果同意，它会关闭浮动缩略图，并把新截图保存到它自己的文件夹，这两项设置也可以在 Cmd+Shift+5 的「选项」中找到。你原来的设置会被保存，并在退出 SSLine 或从菜单栏关闭该选项时恢复。当有 App 处于全屏时，SSLine 会自动隐藏。
 </sub>
 
 <br>
@@ -147,7 +147,7 @@ open build/Tendedero.app
 <p align="center">
   <img src="../images/icon.png" width="64" height="64" alt="">
   <br>
-  <sub>代码采用 MIT 许可。Tendedero 这一名称与图标不在许可范围内，因此 fork 需要自备名称与图标。详见 <a href="../../LICENSE">LICENSE</a>。</sub>
+  <sub>SSLine 是 Tendedero 的 fork。代码采用 MIT 许可；SSLine 的名称与图标为其自有。详见 <a href="../../LICENSE">LICENSE</a>。</sub>
   <br>
   <sub>由 <a href="https://alejandrobujan.com">Alejandro Buján</a> 设计与开发。</sub>
 </p>

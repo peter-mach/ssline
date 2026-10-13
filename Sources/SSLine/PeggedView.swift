@@ -42,15 +42,6 @@ struct PeggedView: View {
         return CGSize(width: size.width * scale, height: size.height * scale)
     }
 
-    /// The card around the photo: the photo plus the glass inset.
-    static func cardSize(for size: CGSize) -> CGSize {
-        let p = photoSize(for: size)
-        return CGSize(width: p.width + Frame.inset * 2, height: p.height + Frame.inset * 2)
-    }
-
-    /// Distance from the top of the hanging view (the clip) to the card.
-    static let cardOffsetBelowTop: CGFloat = 26 - 12
-
     private var photoSize: CGSize { Self.photoSize(for: item.thumb.size) }
 
     private var card: some View {

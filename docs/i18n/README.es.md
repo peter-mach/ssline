@@ -1,6 +1,6 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../images/es/hero-dark.png">
-  <img src="../images/es/hero-light.png" alt="Tendedero. Tus capturas, tendidas. Tres capturas en marcos de cristal cuelgan de una cuerda fina bajo la barra de menús de macOS.">
+  <img src="../images/es/hero-light.png" alt="SSLine. Tus capturas, tendidas. Tres capturas en marcos de cristal cuelgan de una cuerda fina bajo la barra de menús de macOS.">
 </picture>
 
 <p align="center">
@@ -56,7 +56,7 @@ Lleva el puntero a la barra de menús y la cuerda baja. Apártalo y desaparece.
 
 ## Tu Escritorio, por fin despejado.
 
-Deja que Tendedero se encargue de tus capturas<sup>1</sup> y dejarán de pasar
+Deja que SSLine se encargue de tus capturas<sup>1</sup> y dejarán de pasar
 por el Escritorio. Sin miniatura flotante ni cinco segundos de espera: cada
 captura se cuelga al momento, y solo se queda lo que tú saques de la cuerda.
 
@@ -67,7 +67,7 @@ Los mismos atajos y las mismas costumbres. Pero sin desorden.
 ## Privacidad de serie.
 
 Sin cuentas, sin conexión a internet, sin analíticas.
-Tendedero funciona solo en tu Mac, y tus capturas nunca salen de él.
+SSLine funciona solo en tu Mac, y tus capturas nunca salen de él.
 
 <br>
 
@@ -88,13 +88,13 @@ Tendedero funciona solo en tu Mac, y tus capturas nunca salen de él.
 ## Instalación
 
 Descarga la imagen de disco desde la [última versión](../../../../releases/latest),
-ábrela y arrastra Tendedero a Aplicaciones. También puedes instalarlo con Homebrew:
+ábrela y arrastra SSLine a Aplicaciones. También puedes instalarlo con Homebrew:
 
 ```sh
-brew install --cask alejandrobujan/tap/tendedero
+brew install --cask peter-mach/tap/ssline
 ```
 
-Tendedero está firmado con un Developer ID y notarizado por Apple, así que se
+SSLine está firmado con un Developer ID y notarizado por Apple, así que se
 abre como cualquier otra app.
 
 <br>
@@ -102,10 +102,10 @@ abre como cualquier otra app.
 ## Compilar desde el código
 
 ```sh
-git clone git@github.com:alejandrobujan/tendedero.git
-cd tendedero
+git clone git@github.com:peter-mach/ssline.git
+cd ssline
 scripts/build-app.sh
-open build/Tendedero.app
+open build/SSLine.app
 ```
 
 Solo necesitas las herramientas de Swift; Xcode es opcional. Si usas las
@@ -135,7 +135,7 @@ Todas las imágenes de esta página, icono incluido, se dibujan con código en
 `scripts/make-icon.swift` y `scripts/make-readme-art.swift`.
 `scripts/make-dmg.sh` genera la imagen de disco de cada versión.
 
-Las traducciones están en `Sources/Tendedero/Resources`, con una carpeta
+Las traducciones están en `Sources/SSLine/Resources`, con una carpeta
 `.lproj` por idioma. `swift scripts/check-strings.swift` avisa si falta alguna.
 
 </details>
@@ -145,7 +145,7 @@ Las traducciones están en `Sources/Tendedero/Resources`, con una carpeta
 ---
 
 <sub>
-1. La primera vez que lo abres, Tendedero te ofrece encargarse de tus capturas. Si aceptas, desactiva la miniatura flotante y guarda las capturas nuevas en su propia carpeta; son dos ajustes que también encontrarás en Opciones de Cmd+Mayús+5. Tus ajustes anteriores se guardan y vuelven a su sitio al cerrar Tendedero o al desactivar la opción desde la barra de menús. Mientras una app está a pantalla completa, Tendedero se oculta solo.
+1. La primera vez que lo abres, SSLine te ofrece encargarse de tus capturas. Si aceptas, desactiva la miniatura flotante y guarda las capturas nuevas en su propia carpeta; son dos ajustes que también encontrarás en Opciones de Cmd+Mayús+5. Tus ajustes anteriores se guardan y vuelven a su sitio al cerrar SSLine o al desactivar la opción desde la barra de menús. Mientras una app está a pantalla completa, SSLine se oculta solo.
 </sub>
 
 <br>
@@ -154,7 +154,7 @@ Las traducciones están en `Sources/Tendedero/Resources`, con una carpeta
 <p align="center">
   <img src="../images/icon.png" width="64" height="64" alt="">
   <br>
-  <sub>El código tiene licencia MIT, pero el nombre y el icono de Tendedero no, así que cada fork necesita los suyos. Más detalles en <a href="../../LICENSE">LICENSE</a>.</sub>
+  <sub>SSLine es un fork de Tendedero. El código tiene licencia MIT; el nombre y el icono de SSLine son propios. Más detalles en <a href="../../LICENSE">LICENSE</a>.</sub>
   <br>
   <sub>Diseñado y desarrollado por <a href="https://alejandrobujan.com">Alejandro Buján</a>.</sub>
 </p>
