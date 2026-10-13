@@ -11,7 +11,7 @@ final class ScreenshotWatcher {
     private var known = Set<String>()
     private var source: DispatchSourceFileSystemObject?
     private var pending: DispatchWorkItem?
-    private let onExisting: ((URL) -> Void)?
+    private let includeExisting: Bool
     private let onNew: (URL) -> Void
     private let onChange: () -> Void
 
@@ -20,11 +20,9 @@ final class ScreenshotWatcher {
     static let desktop = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Desktop")
 
     /// Watches the folder macOS saves screenshots to, or a given folder.
-    /// With `onExisting`, every image already there is reported to it at
-    /// start, oldest first.
-    init(folder: URL? = nil, onExisting: ((URL) -> Void)? = nil,
+    init(folder: URL? = nil, includeExisting: Bool = false,
          onNew: @escaping (URL) -> Void, onChange: @escaping () -> Void) {
-        self.onExisting = onExisting
+        self.includeExisting = includeExisting
         self.onNew = onNew
         self.onChange = onChange
         self.folder = folder ?? Self.screenshotFolder()
@@ -56,11 +54,11 @@ final class ScreenshotWatcher {
     /// access at that moment).
     private let launchDate = Date()
 
-    func start() {
+    @discardableResult
+    func start() -> [URL] {
         let files = listing()
-        if let onExisting {
-            for url in files where isCandidate(url) { onExisting(url) }
-        } else {
+        let existing = includeExisting ? files.filter { isCandidate($0) } : []
+        if !includeExisting {
             known = Set(files.filter { creationDate($0) < launchDate }.map(\.path))
             for url in files where !known.contains(url.path) && isCandidate(url) {
                 onNew(url)
@@ -70,7 +68,7 @@ final class ScreenshotWatcher {
         let fd = open(folder.path, O_EVTONLY)
         guard fd >= 0 else {
             NSLog("SSLine: cannot watch \(folder.path)")
-            return
+            return existing
         }
         let src = DispatchSource.makeFileSystemObjectSource(
             fileDescriptor: fd, eventMask: [.write, .rename, .delete], queue: .main)
@@ -78,6 +76,7 @@ final class ScreenshotWatcher {
         src.setCancelHandler { close(fd) }
         src.resume()
         source = src
+        return existing
     }
 
     func stop() {

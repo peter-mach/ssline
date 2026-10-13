@@ -1,5 +1,7 @@
 import AppKit
 
+let launchStartedAt = Date()
+
 MainActor.assumeIsolated {
     let app = NSApplication.shared
     let delegate = AppDelegate()

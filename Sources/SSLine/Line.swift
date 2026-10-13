@@ -13,7 +13,7 @@ struct Pegged: Identifiable, Equatable {
     var pixelSize: CGSize
     /// Every photo hangs a little crooked, like on a real line.
     let tilt = Double.random(in: -2.5...2.5)
-    let hungAt = Date()
+    let hungAt: Date
     /// Bumped when the file changed, so the card loads the new pixels.
     var version = 0
     var falling = false
@@ -61,7 +61,6 @@ final class Line: ObservableObject {
 
     init() {
         thumbs.totalCostLimit = 24 * 1024 * 1024
-        restore()
     }
 
     // MARK: Hanging and dropping
@@ -70,7 +69,7 @@ final class Line: ObservableObject {
     func hang(_ url: URL, quietly: Bool = false, flying: Bool = false) -> UUID? {
         guard !items.contains(where: { $0.url == url && !$0.falling }),
               let size = imagePixelSize(url) else { return nil }
-        var item = Pegged(url: url, pixelSize: size)
+        var item = Pegged(url: url, pixelSize: size, hungAt: Date())
         item.flying = flying
         // Not animated: the strip takes its new width at once, so scrolling to
         // the new card and measuring where the capture lands see the final
@@ -79,6 +78,29 @@ final class Line: ObservableObject {
         save()
         if !quietly { play("Tink", volume: 0.35) }
         return item.id
+    }
+
+    func hangExisting(_ urls: [URL], restoring: Bool) async {
+        let firstID = items.first?.id
+        let saved = restoring ? UserDefaults.standard.stringArray(forKey: storeKey) ?? [] : []
+        var known = Set(items.filter { !$0.falling }.map(\.url))
+        let pending = (saved.reversed().map { URL(fileURLWithPath: $0) } + urls)
+            .filter { known.insert($0).inserted }
+        let batch = await Task.detached(priority: .utility) {
+            pending.compactMap { url -> Pegged? in
+                autoreleasepool {
+                    guard let size = imagePixelSize(url) else { return nil }
+                    return Pegged(url: url, pixelSize: size, hungAt: .distantPast)
+                }
+            }
+        }.value
+        guard !Task.isCancelled else { return }
+        let live = Set(items.filter { !$0.falling }.map(\.url))
+        let additions = batch.reversed().filter { !live.contains($0.url) }
+        guard !additions.isEmpty else { return }
+        let index = firstID.flatMap { id in items.firstIndex { $0.id == id } } ?? items.endIndex
+        withTransaction(\.disablesAnimations, true) { items.insert(contentsOf: additions, at: index) }
+        save()
     }
 
     /// The capture has reached the line: the real card takes over.
@@ -273,14 +295,6 @@ final class Line: ObservableObject {
             self.saveScheduled = false
             let paths = self.items.filter { !$0.falling }.map(\.url.path)
             UserDefaults.standard.set(paths, forKey: self.storeKey)
-        }
-    }
-
-    private func restore() {
-        let paths = UserDefaults.standard.stringArray(forKey: storeKey) ?? []
-        // Saved newest first, and each hang goes in front: start from the oldest.
-        for path in paths.reversed() where FileManager.default.fileExists(atPath: path) {
-            hang(URL(fileURLWithPath: path), quietly: true)
         }
     }
 

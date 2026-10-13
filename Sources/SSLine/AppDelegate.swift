@@ -10,6 +10,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var panel: LinePanel!
     private var statusItem: NSStatusItem!
     private var watcher: ScreenshotWatcher!
+    private var loadingTask: Task<Void, Never>?
     /// In inbox mode, a second watcher on the Desktop. If a macOS version
     /// ignores the screenshot settings (macOS 27 renamed one), captures keep
     /// landing on the Desktop, and they still hang on the line.
@@ -52,7 +53,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         if Inbox.isEnabled { Inbox.apply() }
         restoreSettingsOnTermination()
-        startWatcher()
+        startWatcher(restoring: true)
 
         hotKey = HotKey(keyCode: kVK_ANSI_T, modifiers: controlKey | optionKey) { [weak self] in
             self?.toggle()
@@ -113,7 +114,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     // MARK: Inbox mode
 
-    private func startWatcher() {
+    private func startWatcher(restoring: Bool = false) {
+        loadingTask?.cancel()
         watcher?.stop()
         safetyWatcher?.stop()
         safetyWatcher = nil
@@ -121,10 +123,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let inInbox = Inbox.isEnabled && !ScreenshotWatcher.isDesktop(folder)
         watcher = ScreenshotWatcher(
             folder: folder,
-            onExisting: inInbox ? { [weak self] url in self?.line.hang(url, quietly: true) } : nil,
+            includeExisting: inInbox,
             onNew: { [weak self] url in self?.hangCapture(url) },
             onChange: { [weak self] in self?.line.prune() })
-        watcher.start()
+        let existing = watcher.start()
+        loadingTask = Task { [weak self] in
+            guard let self else { return }
+            await self.line.hangExisting(existing, restoring: restoring)
+            if restoring && !Task.isCancelled {
+                log.notice("Line ready: \(self.line.items.count) items in \(Date().timeIntervalSince(launchStartedAt) * 1000) ms")
+            }
+        }
         if inInbox {
             let safety = ScreenshotWatcher(
                 folder: ScreenshotWatcher.desktop,
