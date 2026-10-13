@@ -97,9 +97,7 @@ final class Line: ObservableObject {
         let live = items.filter { !$0.falling }
         for (n, item) in live.enumerated() {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.06 * Double(min(n, 20))) { [weak self] in
-                guard let self else { return }
-                // Inbox files would come straight back on the next launch.
-                if self.isInInbox(item.id) { self.trash(item.id) } else { self.drop(item.id, quietly: n > 0) }
+                self?.drop(item.id, quietly: n > 0)
             }
         }
     }
@@ -245,9 +243,19 @@ final class Line: ObservableObject {
 
     // MARK: Persistence
 
+    private var saveScheduled = false
+
+    /// Coalesced: hanging a whole folder at start would otherwise write the
+    /// list once per file.
     private func save() {
-        let paths = items.filter { !$0.falling }.map(\.url.path)
-        UserDefaults.standard.set(paths, forKey: storeKey)
+        guard !saveScheduled else { return }
+        saveScheduled = true
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.saveScheduled = false
+            let paths = self.items.filter { !$0.falling }.map(\.url.path)
+            UserDefaults.standard.set(paths, forKey: self.storeKey)
+        }
     }
 
     private func restore() {
