@@ -25,7 +25,7 @@ struct LineView: View {
 
                 ScrollViewReader { proxy in
                     ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(alignment: .top, spacing: Layout.spacing - Layout.cardWidth) {
+                        LazyHStack(alignment: .top, spacing: Layout.spacing - Layout.cardWidth) {
                             ForEach(line.items) { item in
                                 PeggedView(item: item, line: line)
                                     .frame(width: Layout.cardWidth, height: Layout.panelHeight - Layout.ropeTop,

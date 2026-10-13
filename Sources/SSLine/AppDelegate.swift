@@ -227,7 +227,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func fall(_ item: Pegged) {
         guard isPresent, isRevealed, !item.flying, let screen = panel.screen,
               let card = cardFrame(for: item.id),
-              let image = item.thumb.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return }
+              let image = line.thumbnail(for: item)?.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return }
         CaptureFlight.fall(image: image, card: card, tilt: CGFloat(item.tilt), on: screen)
     }
 

@@ -9,16 +9,13 @@ let log = Logger(subsystem: "app.ssline.SSLine", category: "line")
 struct Pegged: Identifiable, Equatable {
     let id = UUID()
     let url: URL
-    var thumb: NSImage
+    /// Known before the thumbnail is made, so the card can be laid out at once.
+    var pixelSize: CGSize
     /// Every photo hangs a little crooked, like on a real line.
     let tilt = Double.random(in: -2.5...2.5)
     var falling = false
     /// Still flying in from where it was captured; the card waits hidden.
     var flying = false
-
-    static func == (a: Pegged, b: Pegged) -> Bool {
-        a.id == b.id && a.falling == b.falling && a.flying == b.flying && a.thumb === b.thumb
-    }
 }
 
 /// The line itself: what hangs on it and what you can do with each item.
@@ -38,6 +35,9 @@ final class Line: ObservableObject {
     /// where a capture lands.
     var hitRects: [UUID: CGRect] = [:]
 
+    private let thumbs = NSCache<NSString, NSImage>()
+    private var loadingThumbs: Set<URL> = []
+
     var soundOn: Bool {
         get { !UserDefaults.standard.bool(forKey: "soundOff") }
         set { UserDefaults.standard.set(!newValue, forKey: "soundOff") }
@@ -48,6 +48,7 @@ final class Line: ObservableObject {
     private let storeKey = "pegged"
 
     init() {
+        thumbs.countLimit = 64
         restore()
         scheduleGust()
     }
@@ -57,8 +58,8 @@ final class Line: ObservableObject {
     @discardableResult
     func hang(_ url: URL, quietly: Bool = false, flying: Bool = false) -> UUID? {
         guard !items.contains(where: { $0.url == url && !$0.falling }),
-              let thumb = makeThumbnail(url) else { return nil }
-        var item = Pegged(url: url, thumb: thumb)
+              let size = imagePixelSize(url) else { return nil }
+        var item = Pegged(url: url, pixelSize: size)
         item.flying = flying
         // Not animated: the strip takes its new width at once, so scrolling to
         // the new card and measuring where the capture lands see the final
@@ -197,8 +198,29 @@ final class Line: ObservableObject {
     /// After editing, the photo on the line shows the new version.
     func reloadThumbnail(for url: URL) {
         guard let i = items.firstIndex(where: { $0.url == url && !$0.falling }),
-              let thumb = makeThumbnail(url) else { return }
-        items[i].thumb = thumb
+              let size = imagePixelSize(url) else { return }
+        thumbs.removeObject(forKey: url.path as NSString)
+        items[i].pixelSize = size
+    }
+
+    /// The photo's thumbnail if it is ready. If not, it is made off the main
+    /// thread and the cards redraw once it is in.
+    func thumbnail(for item: Pegged) -> NSImage? {
+        let url = item.url
+        if let image = thumbs.object(forKey: url.path as NSString) { return image }
+        guard loadingThumbs.insert(url).inserted else { return nil }
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            let image = makeThumbnail(url)
+            DispatchQueue.main.async {
+                guard let self else { return }
+                self.loadingThumbs.remove(url)
+                // Publishing a failure would redraw the card, which asks again.
+                guard let image else { return }
+                self.thumbs.setObject(image, forKey: url.path as NSString)
+                self.objectWillChange.send()
+            }
+        }
+        return nil
     }
 
     func reveal(_ id: UUID) {
@@ -246,6 +268,17 @@ final class Line: ObservableObject {
               let rep = NSBitmapImageRep(data: tiff) else { return nil }
         return rep.representation(using: .png, properties: [:])
     }
+}
+
+/// Read from the file's header, without decoding the image.
+func imagePixelSize(_ url: URL) -> CGSize? {
+    guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
+          let props = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+          let w = props[kCGImagePropertyPixelWidth] as? Int,
+          let h = props[kCGImagePropertyPixelHeight] as? Int, w > 0, h > 0 else { return nil }
+    // Orientations 5 to 8 turn the image a quarter, and thumbnails are made upright.
+    let quarterTurn = (props[kCGImagePropertyOrientation] as? Int ?? 1) >= 5
+    return quarterTurn ? CGSize(width: h, height: w) : CGSize(width: w, height: h)
 }
 
 func makeThumbnail(_ url: URL, maxPixels: Int = 480) -> NSImage? {
