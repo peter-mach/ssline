@@ -60,7 +60,7 @@ final class Line: ObservableObject {
     private let storeKey = "pegged"
 
     init() {
-        thumbs.countLimit = 256
+        thumbs.totalCostLimit = 24 * 1024 * 1024
         restore()
     }
 
@@ -229,7 +229,10 @@ final class Line: ObservableObject {
     func thumbnail(for url: URL) async -> NSImage? {
         if let image = cachedThumbnail(for: url) { return image }
         let image = await Task.detached(priority: .utility) { makeThumbnail(url) }.value
-        if let image { thumbs.setObject(image, forKey: url.path as NSString) }
+        guard !Task.isCancelled else { return nil }
+        if let image, let cg = image.cgImage(forProposedRect: nil, context: nil, hints: nil) {
+            thumbs.setObject(image, forKey: url.path as NSString, cost: cg.bytesPerRow * cg.height)
+        }
         return image
     }
 
@@ -308,7 +311,7 @@ func imagePixelSize(_ url: URL) -> CGSize? {
     return quarterTurn ? CGSize(width: h, height: w) : CGSize(width: w, height: h)
 }
 
-func makeThumbnail(_ url: URL, maxPixels: Int = 480) -> NSImage? {
+func makeThumbnail(_ url: URL, maxPixels: Int = 320) -> NSImage? {
     guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else { return nil }
     let options: [CFString: Any] = [
         kCGImageSourceCreateThumbnailFromImageAlways: true,

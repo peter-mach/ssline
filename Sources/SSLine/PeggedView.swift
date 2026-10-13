@@ -37,7 +37,11 @@ struct PeggedView: View {
         .transaction { t in if item.falling { t.animation = nil } }
         .animation(.easeOut(duration: 0.16), value: item.flying)
         .onAppear(perform: arrive)
-        .task(id: item.version) { thumb = await line.thumbnail(for: item.url) }
+        .task(id: item.version) {
+            let image = await line.thumbnail(for: item.url)
+            if !Task.isCancelled { thumb = image }
+        }
+        .onDisappear { thumb = nil }
         .onChange(of: item.flying) { was, now in if was && !now { land() } }
         .onChange(of: line.gust) { _, _ in breeze() }
         .onChange(of: copied) { _, isCopied in if isCopied { nudge(3) } }
