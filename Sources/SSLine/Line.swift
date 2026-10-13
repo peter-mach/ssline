@@ -13,6 +13,7 @@ struct Pegged: Identifiable, Equatable {
     var pixelSize: CGSize
     /// Every photo hangs a little crooked, like on a real line.
     let tilt = Double.random(in: -2.5...2.5)
+    let hungAt = Date()
     var falling = false
     /// Still flying in from where it was captured; the card waits hidden.
     var flying = false
@@ -95,8 +96,10 @@ final class Line: ObservableObject {
     func clear() {
         let live = items.filter { !$0.falling }
         for (n, item) in live.enumerated() {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.06 * Double(n)) { [weak self] in
-                self?.drop(item.id, quietly: n > 0)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.06 * Double(min(n, 20))) { [weak self] in
+                guard let self else { return }
+                // Inbox files would come straight back on the next launch.
+                if self.isInInbox(item.id) { self.trash(item.id) } else { self.drop(item.id, quietly: n > 0) }
             }
         }
     }

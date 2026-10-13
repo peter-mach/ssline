@@ -113,7 +113,8 @@ struct PeggedView: View {
         // into view, and it keeps the card's state while it is away.
         guard !arrived else { return }
         // A capture that flew in is already in place; the flight did the arriving.
-        if item.flying {
+        // An old card scrolled into view for the first time was never away.
+        if item.flying || Date().timeIntervalSince(item.hungAt) > 1 {
             arrived = true
             return
         }
