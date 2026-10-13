@@ -26,9 +26,10 @@ struct GrabArea: NSViewRepresentable {
 
     private func configure(_ view: GrabView) {
         let id = item.id
+        let item = item
         let line = line
         view.url = item.url
-        view.dragImage = item.thumb
+        view.dragImage = { line.thumbnail(for: item) ?? makeThumbnail(item.url) }
         view.onClick = { line.copy(id) }
         view.onDoubleClick = { line.open(id) }
         view.onDragStart = { line.draggingID = id }
@@ -67,7 +68,9 @@ final class GrabView: NSView, NSDraggingSource {
     static var isDragging = false
 
     var url: URL?
-    var dragImage: NSImage?
+    /// Asked for when the drag starts: the thumbnail may still be loading
+    /// when the view is configured.
+    var dragImage: () -> NSImage? = { nil }
     var onClick: () -> Void = {}
     var onDoubleClick: () -> Void = {}
     var onDragStart: () -> Void = {}
@@ -139,8 +142,9 @@ final class GrabView: NSView, NSDraggingSource {
         startedDrag = true
         endPress()
 
+        let image = dragImage()
         let item = NSDraggingItem(pasteboardWriter: url as NSURL)
-        item.setDraggingFrame(imageFrame(), contents: dragImage)
+        item.setDraggingFrame(imageFrame(for: image), contents: image)
         let session = beginDraggingSession(with: [item], event: event, source: self)
         // Released where nothing accepts it: it flies back to the line.
         session.animatesToStartingPositionsOnCancelOrFail = true
@@ -189,8 +193,8 @@ final class GrabView: NSView, NSDraggingSource {
     }
 
     /// The drag preview keeps the photo's aspect ratio inside the card.
-    private func imageFrame() -> NSRect {
-        guard let size = dragImage?.size, size.width > 0, size.height > 0 else { return bounds }
+    private func imageFrame(for image: NSImage?) -> NSRect {
+        guard let size = image?.size, size.width > 0, size.height > 0 else { return bounds }
         let scale = min(bounds.width / size.width, bounds.height / size.height)
         let w = size.width * scale, h = size.height * scale
         return NSRect(x: (bounds.width - w) / 2, y: (bounds.height - h) / 2, width: w, height: h)

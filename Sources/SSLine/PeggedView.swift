@@ -42,12 +42,20 @@ struct PeggedView: View {
         return CGSize(width: size.width * scale, height: size.height * scale)
     }
 
-    private var photoSize: CGSize { Self.photoSize(for: item.thumb.size) }
+    private var photoSize: CGSize { Self.photoSize(for: item.pixelSize) }
+
+    @ViewBuilder private var photo: some View {
+        if let thumb = line.thumbnail(for: item) {
+            Image(nsImage: thumb)
+                .resizable()
+                .interpolation(.high)
+        } else {
+            Rectangle().fill(.quaternary)
+        }
+    }
 
     private var card: some View {
-        Image(nsImage: item.thumb)
-            .resizable()
-            .interpolation(.high)
+        photo
             .frame(width: photoSize.width, height: photoSize.height)
             // Concentric corners: the photo's radius is the frame's minus the
             // inset, the way macOS rounds nested shapes.
@@ -101,6 +109,9 @@ struct PeggedView: View {
     }
 
     private func arrive() {
+        // The lazy line calls onAppear again each time a card scrolls back
+        // into view, and it keeps the card's state while it is away.
+        guard !arrived else { return }
         // A capture that flew in is already in place; the flight did the arriving.
         if item.flying {
             arrived = true
