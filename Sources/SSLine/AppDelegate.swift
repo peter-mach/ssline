@@ -125,7 +125,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             folder: folder,
             includeExisting: inInbox,
             onNew: { [weak self] url in self?.hangCapture(url) },
-            onChange: { [weak self] in self?.line.prune() })
+            onChange: { [weak self] in self?.prune() })
         let existing = watcher.start()
         loadingTask = Task { [weak self] in
             guard let self else { return }
@@ -141,7 +141,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                     log.notice("Screenshot landed on the Desktop despite inbox mode: \(url.lastPathComponent, privacy: .public)")
                     self?.hangCapture(url)
                 },
-                onChange: { [weak self] in self?.line.prune() })
+                onChange: { [weak self] in self?.prune() })
             safety.start()
             safetyWatcher = safety
         }
@@ -151,6 +151,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         Inbox.isEnabled = on
         if on { Inbox.apply() } else { Inbox.restore() }
         startWatcher()
+    }
+
+    private func prune() {
+        var listings = [watcher.folder.standardizedFileURL: watcher.known]
+        if let safetyWatcher { listings[safetyWatcher.folder.standardizedFileURL] = safetyWatcher.known }
+        line.prune(listings: listings)
     }
 
     /// A folder only means something in inbox mode, so choosing one turns it on.

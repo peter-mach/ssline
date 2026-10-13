@@ -8,7 +8,7 @@ final class ScreenshotWatcher {
     /// On the Desktop we only accept real screenshots, tagged by macOS with an
     /// extended attribute. In a dedicated folder, any image counts.
     private let onlyTaggedScreenshots: Bool
-    private var known = Set<String>()
+    private(set) var known = Set<String>()
     private var source: DispatchSourceFileSystemObject?
     private var pending: DispatchWorkItem?
     private let includeExisting: Bool
@@ -56,7 +56,7 @@ final class ScreenshotWatcher {
 
     @discardableResult
     func start() -> [URL] {
-        let files = listing()
+        let files = (listing() ?? []).sorted { creationDate($0) < creationDate($1) }
         let existing = includeExisting ? files.filter { isCandidate($0) } : []
         if !includeExisting {
             known = Set(files.filter { creationDate($0) < launchDate }.map(\.path))
@@ -94,18 +94,19 @@ final class ScreenshotWatcher {
     }
 
     private func scan() {
-        let files = listing()
-        for url in files where !known.contains(url.path) && isCandidate(url) {
+        guard let files = listing() else { return }
+        let additions = files.filter { !known.contains($0.path) && isCandidate($0) }
+            .sorted { creationDate($0) < creationDate($1) }
+        for url in additions {
             onNew(url)
         }
         known = Set(files.map(\.path))
         onChange()
     }
 
-    private func listing() -> [URL] {
-        let urls = (try? FileManager.default.contentsOfDirectory(
-            at: folder, includingPropertiesForKeys: [.creationDateKey], options: [.skipsHiddenFiles])) ?? []
-        return urls.sorted { creationDate($0) < creationDate($1) }
+    private func listing() -> [URL]? {
+        try? FileManager.default.contentsOfDirectory(
+            at: folder, includingPropertiesForKeys: [], options: [.skipsHiddenFiles])
     }
 
     private func creationDate(_ url: URL) -> Date {

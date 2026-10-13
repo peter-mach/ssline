@@ -36,7 +36,7 @@ struct GrabArea: NSViewRepresentable {
         view.onDragEnd = {
             line.draggingID = nil
             // Moved into a folder: it is saved where you wanted it.
-            line.prune()
+            line.prune(id)
         }
         view.onTrash = { line.trash(id) }
         view.onDiscard = { line.discard(id) }

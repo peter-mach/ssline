@@ -144,10 +144,19 @@ final class Line: ObservableObject {
     }
 
     /// Photos whose file was deleted or moved away fall off by themselves.
-    func prune() {
-        for item in items where !item.falling && !FileManager.default.fileExists(atPath: item.url.path) {
-            drop(item.id, quietly: true)
+    func prune(listings: [URL: Set<String>]) {
+        for item in items where !item.falling {
+            let folder = item.url.deletingLastPathComponent().standardizedFileURL
+            let exists = listings[folder]?.contains(item.url.path)
+                ?? FileManager.default.fileExists(atPath: item.url.path)
+            if !exists { drop(item.id, quietly: true) }
         }
+    }
+
+    func prune(_ id: UUID) {
+        guard let item = items.first(where: { $0.id == id }),
+              !FileManager.default.fileExists(atPath: item.url.path) else { return }
+        drop(id, quietly: true)
     }
 
     // MARK: Actions on one photo
