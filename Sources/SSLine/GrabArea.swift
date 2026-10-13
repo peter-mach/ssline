@@ -29,7 +29,7 @@ struct GrabArea: NSViewRepresentable {
         let item = item
         let line = line
         view.url = item.url
-        view.dragImage = { line.thumbnail(for: item) ?? makeThumbnail(item.url) }
+        view.dragImage = { line.cachedThumbnail(for: item.url) ?? makeThumbnail(item.url) }
         view.onClick = { line.copy(id) }
         view.onDoubleClick = { line.open(id) }
         view.onDragStart = { line.draggingID = id }

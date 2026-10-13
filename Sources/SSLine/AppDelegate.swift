@@ -165,6 +165,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         startWatcher()
     }
 
+    private func confirmClear() {
+        let count = line.liveCount
+        let trashing = line.items.contains { !$0.falling && line.isInInbox($0.id) }
+        let alert = NSAlert()
+        alert.messageText = L("Take everything down?")
+        alert.informativeText = String(format: trashing
+            ? L("%d screenshots will be moved to the Trash.")
+            : L("%d screenshots will come off the line. The files stay where they are."), count)
+        alert.addButton(withTitle: trashing ? L("Move to Trash") : L("Take down"))
+        alert.addButton(withTitle: L("Cancel"))
+        NSApp.activate(ignoringOtherApps: true)
+        if alert.runModal() == .alertFirstButtonReturn { line.clear() }
+    }
+
     /// Asked once. Changing system settings is the user's call, never ours.
     private func offerInbox() {
         Inbox.wasOffered = true
@@ -254,7 +268,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func fall(_ item: Pegged) {
         guard isPresent, isRevealed, !item.flying, let screen = panel.screen,
               let card = cardFrame(for: item.id),
-              let image = line.thumbnail(for: item)?.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return }
+              let image = line.cachedThumbnail(for: item.url)?.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return }
         CaptureFlight.fall(image: image, card: card, tilt: CGFloat(item.tilt), on: screen)
     }
 
@@ -466,8 +480,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         toggleItem.keyEquivalentModifierMask = [.control, .option]
         menu.addItem(toggleItem)
 
-        let clearItem = ClosureMenuItem(L("Take everything down")) { [weak self] in
-            self?.line.clear()
+        let clearItem = ClosureMenuItem(L("Take everything down…")) { [weak self] in
+            self?.confirmClear()
         }
         clearItem.isEnabled = line.liveCount > 0
         menu.addItem(clearItem)

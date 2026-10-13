@@ -7,8 +7,17 @@ struct PeggedView: View {
     @ObservedObject var line: Line
 
     @State private var swing: Double = 0
-    @State private var arrived = false
+    @State private var arrived: Bool
     @State private var hovering = false
+    @State private var thumb: NSImage?
+
+    init(item: Pegged, line: Line) {
+        self.item = item
+        _line = ObservedObject(wrappedValue: line)
+        // A card first drawn long after it was hung is already in place: the
+        // lazy line builds it when it scrolls into view, not when it arrived.
+        _arrived = State(initialValue: Date().timeIntervalSince(item.hungAt) > 1)
+    }
 
     private var copied: Bool { line.copiedID == item.id }
     private var dragging: Bool { line.draggingID == item.id }
@@ -28,6 +37,7 @@ struct PeggedView: View {
         .transaction { t in if item.falling { t.animation = nil } }
         .animation(.easeOut(duration: 0.16), value: item.flying)
         .onAppear(perform: arrive)
+        .task(id: item.version) { thumb = await line.thumbnail(for: item.url) }
         .onChange(of: item.flying) { was, now in if was && !now { land() } }
         .onChange(of: line.gust) { _, _ in breeze() }
         .onChange(of: copied) { _, isCopied in if isCopied { nudge(3) } }
@@ -45,7 +55,7 @@ struct PeggedView: View {
     private var photoSize: CGSize { Self.photoSize(for: item.pixelSize) }
 
     @ViewBuilder private var photo: some View {
-        if let thumb = line.thumbnail(for: item) {
+        if let thumb {
             Image(nsImage: thumb)
                 .resizable()
                 .interpolation(.high)
@@ -109,12 +119,9 @@ struct PeggedView: View {
     }
 
     private func arrive() {
-        // The lazy line calls onAppear again each time a card scrolls back
-        // into view, and it keeps the card's state while it is away.
         guard !arrived else { return }
         // A capture that flew in is already in place; the flight did the arriving.
-        // An old card scrolled into view for the first time was never away.
-        if item.flying || Date().timeIntervalSince(item.hungAt) > 1 {
+        if item.flying {
             arrived = true
             return
         }

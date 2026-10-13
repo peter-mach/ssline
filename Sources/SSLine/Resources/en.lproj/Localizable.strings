@@ -9,7 +9,11 @@
 "Not now" = "Not now";
 "Hide line" = "Hide line";
 "Show line" = "Show line";
-"Take everything down" = "Take everything down";
+"Take everything down…" = "Take everything down…";
+"Take everything down?" = "Take everything down?";
+"%d screenshots will be moved to the Trash." = "%d screenshots will be moved to the Trash.";
+"%d screenshots will come off the line. The files stay where they are." = "%d screenshots will come off the line. The files stay where they are.";
+"Cancel" = "Cancel";
 "Handle screenshots" = "Handle screenshots";
 "Screenshots hang instantly and skip the Desktop" = "Screenshots hang instantly and skip the Desktop";
 "Open screenshots folder" = "Open screenshots folder";

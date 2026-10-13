@@ -14,6 +14,8 @@ struct Pegged: Identifiable, Equatable {
     /// Every photo hangs a little crooked, like on a real line.
     let tilt = Double.random(in: -2.5...2.5)
     let hungAt = Date()
+    /// Bumped when the file changed, so the card loads the new pixels.
+    var version = 0
     var falling = false
     /// Still flying in from where it was captured; the card waits hidden.
     var flying = false
@@ -37,7 +39,6 @@ final class Line: ObservableObject {
     var hitRects: [UUID: CGRect] = [:]
 
     private let thumbs = NSCache<NSString, NSImage>()
-    private var loadingThumbs: Set<URL> = []
 
     var soundOn: Bool {
         get { !UserDefaults.standard.bool(forKey: "soundOff") }
@@ -49,7 +50,7 @@ final class Line: ObservableObject {
     private let storeKey = "pegged"
 
     init() {
-        thumbs.countLimit = 64
+        thumbs.countLimit = 256
         restore()
         scheduleGust()
     }
@@ -93,8 +94,17 @@ final class Line: ObservableObject {
         }
     }
 
+    /// Inbox files go to the Trash as well, or the folder would hang them
+    /// all again at the next launch. The caller confirms first.
     func clear() {
         let live = items.filter { !$0.falling }
+        let doomed = live.filter { isInInbox($0.id) }.map(\.url)
+        if !doomed.isEmpty {
+            if soundOn { Line.trashSound?.play() }
+            DispatchQueue.global(qos: .utility).async {
+                for url in doomed { try? FileManager.default.trashItem(at: url, resultingItemURL: nil) }
+            }
+        }
         for (n, item) in live.enumerated() {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.06 * Double(min(n, 20))) { [weak self] in
                 self?.drop(item.id, quietly: n > 0)
@@ -202,26 +212,20 @@ final class Line: ObservableObject {
               let size = imagePixelSize(url) else { return }
         thumbs.removeObject(forKey: url.path as NSString)
         items[i].pixelSize = size
+        items[i].version += 1
     }
 
-    /// The photo's thumbnail if it is ready. If not, it is made off the main
-    /// thread and the cards redraw once it is in.
-    func thumbnail(for item: Pegged) -> NSImage? {
-        let url = item.url
-        if let image = thumbs.object(forKey: url.path as NSString) { return image }
-        guard loadingThumbs.insert(url).inserted else { return nil }
-        DispatchQueue.global(qos: .utility).async { [weak self] in
-            let image = makeThumbnail(url)
-            DispatchQueue.main.async {
-                guard let self else { return }
-                self.loadingThumbs.remove(url)
-                // Publishing a failure would redraw the card, which asks again.
-                guard let image else { return }
-                self.thumbs.setObject(image, forKey: url.path as NSString)
-                self.objectWillChange.send()
-            }
-        }
-        return nil
+    /// Made off the main thread; cards keep their own copy once loaded, so
+    /// the cache only spares a reload when a card scrolls back into view.
+    func thumbnail(for url: URL) async -> NSImage? {
+        if let image = cachedThumbnail(for: url) { return image }
+        let image = await Task.detached(priority: .utility) { makeThumbnail(url) }.value
+        if let image { thumbs.setObject(image, forKey: url.path as NSString) }
+        return image
+    }
+
+    func cachedThumbnail(for url: URL) -> NSImage? {
+        thumbs.object(forKey: url.path as NSString)
     }
 
     func reveal(_ id: UUID) {

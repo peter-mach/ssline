@@ -7,7 +7,11 @@
 "Not now" = "以后再说";
 "Hide line" = "隐藏晾衣绳";
 "Show line" = "显示晾衣绳";
-"Take everything down" = "全部取下";
+"Take everything down…" = "全部取下…";
+"Take everything down?" = "要全部取下吗？";
+"%d screenshots will be moved to the Trash." = "%d 张截图将被移到废纸篓。";
+"%d screenshots will come off the line. The files stay where they are." = "%d 张截图将从晾衣绳上取下，文件留在原处。";
+"Cancel" = "取消";
 "Handle screenshots" = "接管截图";
 "Screenshots hang instantly and skip the Desktop" = "截图即刻挂上，不再经过桌面";
 "Open screenshots folder" = "打开截图文件夹";
