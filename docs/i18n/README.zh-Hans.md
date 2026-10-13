@@ -86,11 +86,7 @@ SSLine 完全在你的 Mac 上运行，截图不会离开这台电脑。
 
 ## 安装
 
-从[最新发布](../../../../releases/latest)下载磁盘映像，打开后把 SSLine 拖进「应用程序」。也可以用 Homebrew 安装：
-
-```sh
-brew install --cask peter-mach/tap/ssline
-```
+从[最新发布](../../../../releases/latest)下载磁盘映像，打开后把 SSLine 拖进「应用程序」。
 
 SSLine 已使用 Developer ID 签名并通过 Apple 公证，打开方式和其他 App 一样。
 
@@ -149,5 +145,5 @@ open build/SSLine.app
   <br>
   <sub>SSLine 是 Tendedero 的 fork。代码采用 MIT 许可；SSLine 的名称与图标为其自有。详见 <a href="../../LICENSE">LICENSE</a>。</sub>
   <br>
-  <sub>由 <a href="https://alejandrobujan.com">Alejandro Buján</a> 设计与开发。</sub>
+  <sub>由 <a href="https://github.com/peter-mach">Peter Machowski</a> 维护。原版 Tendedero 由 <a href="https://alejandrobujan.com">Alejandro Buján</a> 设计与开发。</sub>
 </p>

@@ -86,11 +86,7 @@ SSLine runs entirely on your Mac, and your screenshots never leave it.
 ## Install
 
 Download the disk image from the [latest release](../../releases/latest),
-open it and drag SSLine to Applications. Or install it with Homebrew:
-
-```sh
-brew install --cask peter-mach/tap/ssline
-```
+open it and drag SSLine to Applications.
 
 SSLine is signed with a Developer ID and notarized by Apple, so it opens
 like any other app.
@@ -151,5 +147,5 @@ language. `swift scripts/check-strings.swift` checks that none is missing.
   <br>
   <sub>SSLine is a fork of Tendedero. The code is MIT licensed; the SSLine name and icon are its own. See <a href="LICENSE">LICENSE</a>.</sub>
   <br>
-  <sub>Designed and built by <a href="https://alejandrobujan.com">Alejandro Buján</a>.</sub>
+  <sub>Maintained by <a href="https://github.com/peter-mach">Peter Machowski</a>. Originally designed and built as Tendedero by <a href="https://alejandrobujan.com">Alejandro Buján</a>.</sub>
 </p>

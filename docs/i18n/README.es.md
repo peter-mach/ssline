@@ -88,11 +88,7 @@ SSLine funciona solo en tu Mac, y tus capturas nunca salen de él.
 ## Instalación
 
 Descarga la imagen de disco desde la [última versión](../../../../releases/latest),
-ábrela y arrastra SSLine a Aplicaciones. También puedes instalarlo con Homebrew:
-
-```sh
-brew install --cask peter-mach/tap/ssline
-```
+ábrela y arrastra SSLine a Aplicaciones.
 
 SSLine está firmado con un Developer ID y notarizado por Apple, así que se
 abre como cualquier otra app.
@@ -156,5 +152,5 @@ Las traducciones están en `Sources/SSLine/Resources`, con una carpeta
   <br>
   <sub>SSLine es un fork de Tendedero. El código tiene licencia MIT; el nombre y el icono de SSLine son propios. Más detalles en <a href="../../LICENSE">LICENSE</a>.</sub>
   <br>
-  <sub>Diseñado y desarrollado por <a href="https://alejandrobujan.com">Alejandro Buján</a>.</sub>
+  <sub>Mantenido por <a href="https://github.com/peter-mach">Peter Machowski</a>. Diseñado y desarrollado originalmente como Tendedero por <a href="https://alejandrobujan.com">Alejandro Buján</a>.</sub>
 </p>
