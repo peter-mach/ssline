@@ -42,7 +42,10 @@ final class Line: ObservableObject {
     /// Card frames in window coordinates, reported by the views. The panel
     /// uses them to only catch the mouse where the photos hang, and to know
     /// where a capture lands.
-    var hitRects: [UUID: CGRect] = [:]
+    var hitRects: [UUID: CGRect] = [:] {
+        didSet { hitBottom = hitRects.values.reduce(nil) { max($0 ?? $1.maxY, $1.maxY) } }
+    }
+    private(set) var hitBottom: CGFloat?
 
     private let thumbs = NSCache<NSString, NSImage>()
     private var gustTimer: Timer?

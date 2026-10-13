@@ -18,6 +18,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var hotKey: HotKey?
     private var cancellables = Set<AnyCancellable>()
     private var mouseTimer: Timer?
+    private var moveMonitors: [Any] = []
 
     /// Whether the panel is ordered in. It can be in and still tucked away
     /// above the top edge, like an auto-hiding Dock.
@@ -59,6 +60,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         setUpStatusItem()
         watchMenuBarClicks()
+        watchMouseMovement()
 
         Markup.shared.onSaved = { [weak self] url in self?.line.reloadThumbnail(for: url) }
         line.onFall = { [weak self] item in self?.fall(item) }
@@ -290,9 +292,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         } else {
             dismiss()
         }
-        // The cursor is watched while there is a line, even tucked away,
-        // to notice it pushing against the top edge.
-        if wanted { startMouseTracking() } else { stopMouseTracking() }
     }
 
     private func present() {
@@ -324,7 +323,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         guard on != isRevealed else { return }
         isRevealed = on
         line.revealed = on
-        if !on {
+        if on {
+            startMouseTracking()
+        } else {
+            stopMouseTracking()
             pinned = false
             peekUntil = .distantPast
             panel.ignoresMouseEvents = true
@@ -355,6 +357,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         RunLoop.main.add(timer, forMode: .common)
         mouseTimer = timer
+    }
+
+    private func watchMouseMovement() {
+        let handler: (NSEvent) -> Void = { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self, self.wanted, !self.isRevealed else { return }
+                self.tick()
+            }
+        }
+        if let global = NSEvent.addGlobalMonitorForEvents(matching: .mouseMoved, handler: handler) {
+            moveMonitors.append(global)
+        }
+        if let local = NSEvent.addLocalMonitorForEvents(matching: .mouseMoved, handler: { event in
+            handler(event)
+            return event
+        }) {
+            moveMonitors.append(local)
+        }
     }
 
     private func stopMouseTracking() {
@@ -397,13 +417,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func tick() {
         let mouse = NSEvent.mouseLocation
-        let now = Date()
-
-        let screenUnderPointer = NSScreen.screens.first { NSMouseInRect(mouse, $0.frame, false) }
-        let inMenuBar = screenUnderPointer.map { NSMouseInRect(mouse, Self.menuBarBand(of: $0), false) } ?? false
-        if !inMenuBar { menuBarSuppressed = false }
 
         guard isRevealed else {
+            let screenUnderPointer = NSScreen.screens.first { NSMouseInRect(mouse, $0.frame, false) }
+            let inMenuBar = screenUnderPointer.map { NSMouseInRect(mouse, Self.menuBarBand(of: $0), false) } ?? false
+            if !inMenuBar { menuBarSuppressed = false }
             // The app's dot, or the middle of the menu bar, brings the line
             // down on that screen at once. The rest of the menu bar is left
             // to menus and other status items.
@@ -411,8 +429,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let bar = Self.menuBarBand(of: screen)
             let centre = bar.insetBy(dx: (bar.width - 240) / 2, dy: 0)
             let overDot = statusItem.button?.window.map { NSMouseInRect(mouse, $0.frame, false) } ?? false
-            if overDot || NSMouseInRect(mouse, centre, false), !FullScreen.isActive(on: screen) {
-                if panel.screen != screen { panel.placeOnScreen() }
+            if overDot || NSMouseInRect(mouse, centre, false) {
+                if panel.screen != screen { panel.placeOnScreen(screen) }
                 refresh()
                 reveal()
             }
@@ -420,6 +438,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
 
         updateMousePassThrough(mouse)
+        let now = Date()
 
         // The line's zone runs from its lowest point up to the top of the
         // screen, menu bar included, so moving up never hides it.
@@ -449,7 +468,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         guard !GrabView.isDragging else { return }
         let local = panel.convertPoint(fromScreen: mouse)
         let flippedY = panel.frame.height - local.y
-        let overStrip = line.hitRects.values.map(\.maxY).max().map { bottom in
+        let overStrip = line.hitBottom.map { bottom in
             flippedY >= Layout.ropeTop - 8 && flippedY <= bottom + 8
         } ?? false
         if panel.ignoresMouseEvents == overStrip {
