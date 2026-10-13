@@ -55,9 +55,10 @@ struct LineView: View {
             .offset(y: line.revealed ? 0 : -(Layout.panelHeight + 12))
             .animation(line.revealed ? .spring(response: 0.28, dampingFraction: 0.86)
                                      : .easeIn(duration: 0.22), value: line.revealed)
-        }
-        .onPreferenceChange(HitRectsKey.self) { rects in
-            line.hitRects = rects
+            .onPreferenceChange(HitRectsKey.self) { rects in
+                let viewport = CGRect(origin: .zero, size: geo.size)
+                line.hitRects = rects.filter { $0.value.intersects(viewport) }
+            }
         }
     }
 

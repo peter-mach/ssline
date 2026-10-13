@@ -31,7 +31,13 @@ final class Line: ObservableObject {
     @Published var draggingID: UUID?
     @Published var pressedID: UUID?
     /// Whether the line has slid down into view.
-    @Published var revealed = false
+    @Published var revealed = false {
+        didSet {
+            gustTimer?.invalidate()
+            gustTimer = nil
+            if revealed { scheduleGust() }
+        }
+    }
 
     /// Card frames in window coordinates, reported by the views. The panel
     /// uses them to only catch the mouse where the photos hang, and to know
@@ -39,6 +45,7 @@ final class Line: ObservableObject {
     var hitRects: [UUID: CGRect] = [:]
 
     private let thumbs = NSCache<NSString, NSImage>()
+    private var gustTimer: Timer?
 
     var soundOn: Bool {
         get { !UserDefaults.standard.bool(forKey: "soundOff") }
@@ -52,7 +59,6 @@ final class Line: ObservableObject {
     init() {
         thumbs.countLimit = 256
         restore()
-        scheduleGust()
     }
 
     // MARK: Hanging and dropping
@@ -238,10 +244,12 @@ final class Line: ObservableObject {
     /// Every so often a little wind moves the line. It is the detail that
     /// makes it feel like an object and not a widget.
     private func scheduleGust() {
-        DispatchQueue.main.asyncAfter(deadline: .now() + .random(in: 7...16)) { [weak self] in
-            guard let self else { return }
-            if !self.items.isEmpty && self.draggingID == nil { self.gust += 1 }
-            self.scheduleGust()
+        gustTimer = Timer.scheduledTimer(withTimeInterval: .random(in: 7...16), repeats: false) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self, self.revealed else { return }
+                if !self.hitRects.isEmpty && self.draggingID == nil { self.gust += 1 }
+                self.scheduleGust()
+            }
         }
     }
 
