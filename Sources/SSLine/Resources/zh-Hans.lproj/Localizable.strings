@@ -11,6 +11,8 @@
 "Handle screenshots" = "接管截图";
 "Screenshots hang instantly and skip the Desktop" = "截图即刻挂上，不再经过桌面";
 "Open screenshots folder" = "打开截图文件夹";
+"Choose screenshots folder…" = "选择截图文件夹…";
+"Choose" = "选择";
 "Sounds" = "声音";
 "Open at login" = "登录时打开";
 "Quit SSLine" = "退出 SSLine";

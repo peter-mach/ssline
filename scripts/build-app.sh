@@ -76,6 +76,10 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>NSHighResolutionCapable</key><true/>
   <key>NSDesktopFolderUsageDescription</key>
   <string>SSLine watches the folder where macOS saves your screenshots so it can hang them on the line.</string>
+  <key>NSDocumentsFolderUsageDescription</key>
+  <string>SSLine watches the folder you chose for screenshots so it can hang them on the line.</string>
+  <key>NSDownloadsFolderUsageDescription</key>
+  <string>SSLine watches the folder you chose for screenshots so it can hang them on the line.</string>
 </dict>
 </plist>
 PLIST

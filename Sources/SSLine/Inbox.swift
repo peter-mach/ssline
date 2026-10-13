@@ -5,7 +5,8 @@ import Foundation
 /// It changes two macOS screenshot settings, the same ones in the Options
 /// menu of Cmd+Shift+5: the floating thumbnail is turned off, so the file is
 /// written at once instead of five seconds later, and the save location
-/// becomes SSLine's own folder, so the Desktop only gets what you keep.
+/// becomes SSLine's own folder, or one you choose, so the Desktop only gets
+/// what you keep.
 ///
 /// The previous values are saved first and put back when the mode is turned
 /// off or the app quits, so macOS is never left pointing at a folder nobody
@@ -21,11 +22,20 @@ enum Inbox {
     private static let enabledKey = "inboxEnabled"
     private static let offeredKey = "inboxOffered"
     private static let savedKey = "inboxSavedSettings"
+    private static let folderKey = "inboxFolder"
 
-    static let folder: URL = {
+    private static let defaultFolder: URL = {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         return base.appendingPathComponent("SSLine/Screenshots", isDirectory: true)
     }()
+
+    static var folder: URL {
+        get {
+            guard let path = UserDefaults.standard.string(forKey: folderKey) else { return defaultFolder }
+            return URL(fileURLWithPath: path, isDirectory: true)
+        }
+        set { UserDefaults.standard.set(newValue.path, forKey: folderKey) }
+    }
 
     /// The user's choice, kept across launches.
     static var isEnabled: Bool {
@@ -49,8 +59,9 @@ enum Inbox {
     static func apply() {
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         // Never save our own values as the "previous" ones, for example after
-        // a crash left them applied.
-        if !isApplied {
+        // a crash left them applied. With nothing saved yet they are saved
+        // anyway: the chosen folder may be where macOS already put them.
+        if !isApplied || UserDefaults.standard.object(forKey: savedKey) == nil {
             let saved: [String: Any] = [
                 "location": CFPreferencesCopyAppValue(locationKey, domain) as? String ?? NSNull(),
                 "locationScreenshot": CFPreferencesCopyAppValue(screenshotLocationKey, domain) as? String ?? NSNull(),

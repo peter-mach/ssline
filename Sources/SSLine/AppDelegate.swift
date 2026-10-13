@@ -115,11 +115,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         watcher?.stop()
         safetyWatcher?.stop()
         safetyWatcher = nil
+        let folder = ScreenshotWatcher.screenshotFolder()
+        let inInbox = Inbox.isEnabled && !ScreenshotWatcher.isDesktop(folder)
         watcher = ScreenshotWatcher(
+            folder: folder,
+            onExisting: inInbox ? { [weak self] url in self?.line.hang(url, quietly: true) } : nil,
             onNew: { [weak self] url in self?.hangCapture(url) },
             onChange: { [weak self] in self?.line.prune() })
         watcher.start()
-        if Inbox.isEnabled, watcher.folder.standardizedFileURL != ScreenshotWatcher.desktop.standardizedFileURL {
+        if inInbox {
             let safety = ScreenshotWatcher(
                 folder: ScreenshotWatcher.desktop,
                 onNew: { [weak self] url in
@@ -135,6 +139,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func setInbox(_ on: Bool) {
         Inbox.isEnabled = on
         if on { Inbox.apply() } else { Inbox.restore() }
+        startWatcher()
+    }
+
+    /// A folder only means something in inbox mode, so choosing one turns it on.
+    private func chooseInboxFolder() {
+        let chooser = NSOpenPanel()
+        chooser.canChooseDirectories = true
+        chooser.canChooseFiles = false
+        chooser.canCreateDirectories = true
+        chooser.prompt = L("Choose")
+        chooser.directoryURL = Inbox.folder
+        NSApp.activate(ignoringOtherApps: true)
+        guard chooser.runModal() == .OK, let url = chooser.url else { return }
+        guard Inbox.isEnabled else {
+            Inbox.folder = url
+            setInbox(true)
+            return
+        }
+        // Restored while the old folder is still current, so macOS gets its
+        // own setting back before the new one is saved as "previous".
+        Inbox.restore()
+        Inbox.folder = url
+        Inbox.apply()
         startWatcher()
     }
 
@@ -455,6 +482,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(ClosureMenuItem(L("Open screenshots folder")) { [weak self] in
             guard let self else { return }
             NSWorkspace.shared.open(self.watcher.folder)
+        })
+
+        menu.addItem(ClosureMenuItem(L("Choose screenshots folder…")) { [weak self] in
+            self?.chooseInboxFolder()
         })
 
         menu.addItem(.separator())

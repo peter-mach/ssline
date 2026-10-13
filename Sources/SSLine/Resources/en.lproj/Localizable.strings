@@ -13,6 +13,8 @@
 "Handle screenshots" = "Handle screenshots";
 "Screenshots hang instantly and skip the Desktop" = "Screenshots hang instantly and skip the Desktop";
 "Open screenshots folder" = "Open screenshots folder";
+"Choose screenshots folder…" = "Choose screenshots folder…";
+"Choose" = "Choose";
 "Sounds" = "Sounds";
 "Open at login" = "Open at login";
 "Quit SSLine" = "Quit SSLine";

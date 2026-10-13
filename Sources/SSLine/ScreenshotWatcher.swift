@@ -11,6 +11,7 @@ final class ScreenshotWatcher {
     private var known = Set<String>()
     private var source: DispatchSourceFileSystemObject?
     private var pending: DispatchWorkItem?
+    private let onExisting: ((URL) -> Void)?
     private let onNew: (URL) -> Void
     private let onChange: () -> Void
 
@@ -19,11 +20,19 @@ final class ScreenshotWatcher {
     static let desktop = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Desktop")
 
     /// Watches the folder macOS saves screenshots to, or a given folder.
-    init(folder: URL? = nil, onNew: @escaping (URL) -> Void, onChange: @escaping () -> Void) {
+    /// With `onExisting`, every image already there is reported to it at
+    /// start, oldest first.
+    init(folder: URL? = nil, onExisting: ((URL) -> Void)? = nil,
+         onNew: @escaping (URL) -> Void, onChange: @escaping () -> Void) {
+        self.onExisting = onExisting
         self.onNew = onNew
         self.onChange = onChange
         self.folder = folder ?? Self.screenshotFolder()
-        onlyTaggedScreenshots = self.folder.standardizedFileURL.path == Self.desktop.standardizedFileURL.path
+        onlyTaggedScreenshots = Self.isDesktop(self.folder)
+    }
+
+    static func isDesktop(_ folder: URL) -> Bool {
+        folder.standardizedFileURL.path == desktop.standardizedFileURL.path
     }
 
     static func screenshotFolder() -> URL {
@@ -49,9 +58,13 @@ final class ScreenshotWatcher {
 
     func start() {
         let files = listing()
-        known = Set(files.filter { creationDate($0) < launchDate }.map(\.path))
-        for url in files where !known.contains(url.path) && isCandidate(url) {
-            onNew(url)
+        if let onExisting {
+            for url in files where isCandidate(url) { onExisting(url) }
+        } else {
+            known = Set(files.filter { creationDate($0) < launchDate }.map(\.path))
+            for url in files where !known.contains(url.path) && isCandidate(url) {
+                onNew(url)
+            }
         }
         known = Set(files.map(\.path))
         let fd = open(folder.path, O_EVTONLY)

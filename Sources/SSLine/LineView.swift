@@ -33,18 +33,18 @@ struct LineView: View {
                             }
                         }
                         .padding(.horizontal, 50)
-                        // Scrolling to the end of the strip rather than to the
-                        // newest card keeps the padding after it on screen.
+                        // Scrolling to the start of the strip rather than to the
+                        // newest card keeps the padding before it on screen.
                         .id(Self.stripID)
                         .padding(.top, Layout.ropeTop - Layout.pinAbove)
                         .frame(minWidth: width, minHeight: Layout.panelHeight, alignment: .top)
                     }
                     .scrollClipDisabled()
-                    .onChange(of: line.items.last?.id, initial: true) { _, newest in
+                    .onChange(of: line.items.first?.id, initial: true) { _, newest in
                         guard newest != nil else { return }
-                        // Inside onChange the strip still has its old width, so
-                        // scrolling now stops one card short of the new one.
-                        DispatchQueue.main.async { proxy.scrollTo(Self.stripID, anchor: .trailing) }
+                        // Inside onChange the strip still has its old layout;
+                        // scroll once it has the new card.
+                        DispatchQueue.main.async { proxy.scrollTo(Self.stripID, anchor: .leading) }
                     }
                 }
             }

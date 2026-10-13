@@ -63,7 +63,7 @@ final class Line: ObservableObject {
         // Not animated: the strip takes its new width at once, so scrolling to
         // the new card and measuring where the capture lands see the final
         // layout instead of one still sliding.
-        withTransaction(\.disablesAnimations, true) { items.append(item) }
+        withTransaction(\.disablesAnimations, true) { items.insert(item, at: 0) }
         save()
         if !quietly { play("Tink", volume: 0.35) }
         return item.id
@@ -227,7 +227,8 @@ final class Line: ObservableObject {
 
     private func restore() {
         let paths = UserDefaults.standard.stringArray(forKey: storeKey) ?? []
-        for path in paths where FileManager.default.fileExists(atPath: path) {
+        // Saved newest first, and each hang goes in front: start from the oldest.
+        for path in paths.reversed() where FileManager.default.fileExists(atPath: path) {
             hang(URL(fileURLWithPath: path), quietly: true)
         }
     }
