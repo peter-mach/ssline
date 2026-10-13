@@ -48,7 +48,7 @@ struct LineView: View {
                     }
                 }
             }
-            .animation(.spring(response: 0.55, dampingFraction: 0.78), value: line.items.map(\.id))
+            .animation(.spring(response: 0.55, dampingFraction: 0.78), value: line.items.count)
             .animation(.easeInOut(duration: 0.3), value: line.items.isEmpty)
             // Tucked away, the whole line waits above the top edge and slides
             // out from under the menu bar, the way an auto-hiding Dock does.

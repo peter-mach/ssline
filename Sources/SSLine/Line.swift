@@ -55,7 +55,7 @@ final class Line: ObservableObject {
         set { UserDefaults.standard.set(!newValue, forKey: "soundOff") }
     }
 
-    var liveCount: Int { items.filter { !$0.falling }.count }
+    var liveCount: Int { items.reduce(0) { $0 + ($1.falling ? 0 : 1) } }
 
     private let storeKey = "pegged"
 
