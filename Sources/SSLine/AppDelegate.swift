@@ -578,11 +578,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate,
     // MARK: Menu bar
 
     private func setUpStatusItem() {
-        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        let image = NSImage(systemSymbolName: "circle.fill", accessibilityDescription: "SSLine")?
-            .withSymbolConfiguration(NSImage.SymbolConfiguration(pointSize: 7, weight: .black))
-        image?.isTemplate = true
-        statusItem.button?.image = image
+        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        statusItem.button?.image = MenuBarIcon.image()
         let menu = NSMenu()
         menu.delegate = self
         statusItem.menu = menu
