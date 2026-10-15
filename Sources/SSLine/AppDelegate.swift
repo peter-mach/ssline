@@ -1,11 +1,13 @@
 import AppKit
 import Carbon
 import Combine
+import Quartz
 import ServiceManagement
 import SwiftUI
 
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate,
+    @preconcurrency QLPreviewPanelDataSource, @preconcurrency QLPreviewPanelDelegate {
     private let line = Line()
     private var panel: LinePanel!
     private var statusItem: NSStatusItem!
@@ -17,6 +19,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var safetyWatcher: ScreenshotWatcher?
     private var signalSources: [DispatchSourceSignal] = []
     private var hotKey: HotKey?
+    private var spaceKey: HotKey?
+    private var appBeforePreview: NSRunningApplication?
     private var cancellables = Set<AnyCancellable>()
     private var mouseTimer: Timer?
     private var moveMonitors: [Any] = []
@@ -395,6 +399,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func stopMouseTracking() {
         mouseTimer?.invalidate()
         mouseTimer = nil
+        spaceKey = nil
         panel.ignoresMouseEvents = true
     }
 
@@ -453,6 +458,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
 
         updateMousePassThrough(mouse)
+        let overCard = cardID(under: mouse) != nil
+        if overCard != (spaceKey != nil) {
+            spaceKey = overCard ? HotKey(keyCode: kVK_Space, modifiers: 0) { [weak self] in self?.toggleQuickLook() } : nil
+        }
         let now = Date()
 
         // The line's zone runs from its lowest point up to the top of the
@@ -462,7 +471,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let inside = NSMouseInRect(mouse, zone, false)
         if inside && pinned { pinned = false }
 
-        let busy = pinned || GrabView.isDragging || line.pressedID != nil || now < peekUntil
+        let busy = pinned || GrabView.isDragging || line.pressedID != nil || now < peekUntil || isPreviewing
         if inside || busy {
             awaySince = nil
         } else {
@@ -481,14 +490,89 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// go to whatever is underneath.
     private func updateMousePassThrough(_ mouse: NSPoint) {
         guard !GrabView.isDragging else { return }
-        let local = panel.convertPoint(fromScreen: mouse)
-        let flippedY = panel.frame.height - local.y
+        let flippedY = panelPoint(mouse).y
         let overStrip = line.hitBottom.map { bottom in
             flippedY >= Layout.ropeTop - 8 && flippedY <= bottom + 8
         } ?? false
         if panel.ignoresMouseEvents == overStrip {
             panel.ignoresMouseEvents = !overStrip
         }
+    }
+
+    private func panelPoint(_ mouse: NSPoint) -> CGPoint {
+        let local = panel.convertPoint(fromScreen: mouse)
+        return CGPoint(x: local.x, y: panel.frame.height - local.y)
+    }
+
+    private func cardID(under mouse: NSPoint) -> UUID? {
+        let point = panelPoint(mouse)
+        return line.hitRects.first { $0.value.contains(point) }?.key
+    }
+
+    // MARK: Quick Look
+
+    private var isPreviewing: Bool {
+        QLPreviewPanel.sharedPreviewPanelExists() && QLPreviewPanel.shared().isVisible
+    }
+
+    private var liveItems: [Pegged] { line.items.filter { !$0.falling } }
+
+    private func toggleQuickLook() {
+        guard let preview = QLPreviewPanel.shared() else { return }
+        if preview.isVisible {
+            preview.orderOut(nil)
+            return
+        }
+        guard let id = cardID(under: NSEvent.mouseLocation),
+              let index = liveItems.firstIndex(where: { $0.id == id }) else { return }
+        // The panel only gets Space and the arrows while the app is active.
+        // SSLine has no window of its own to leave in front, so the app that
+        // had focus gets it back when the panel closes.
+        appBeforePreview = NSWorkspace.shared.frontmostApplication
+        NSApp.activate(ignoringOtherApps: true)
+        preview.updateController()
+        preview.currentPreviewItemIndex = index
+        preview.makeKeyAndOrderFront(nil)
+    }
+
+    override func acceptsPreviewPanelControl(_ panel: QLPreviewPanel!) -> Bool { true }
+
+    override func beginPreviewPanelControl(_ panel: QLPreviewPanel!) {
+        panel.dataSource = self
+        panel.delegate = self
+    }
+
+    override func endPreviewPanelControl(_ panel: QLPreviewPanel!) {
+        panel.dataSource = nil
+        panel.delegate = nil
+        if NSApp.isActive { appBeforePreview?.activate(options: []) }
+        appBeforePreview = nil
+    }
+
+    func numberOfPreviewItems(in panel: QLPreviewPanel!) -> Int { liveItems.count }
+
+    func previewPanel(_ panel: QLPreviewPanel!, previewItemAt index: Int) -> QLPreviewItem! {
+        let items = liveItems
+        return items.indices.contains(index) ? items[index].url as NSURL : nil
+    }
+
+    func previewPanel(_ panel: QLPreviewPanel!, sourceFrameOnScreenFor item: QLPreviewItem!) -> NSRect {
+        previewed(item).flatMap { cardFrame(for: $0.id) } ?? .zero
+    }
+
+    func previewPanel(_ panel: QLPreviewPanel!, transitionImageFor item: QLPreviewItem!,
+                      contentRect: UnsafeMutablePointer<NSRect>!) -> Any! {
+        previewed(item).flatMap { line.cachedThumbnail(for: $0.url) }
+    }
+
+    func previewPanel(_ panel: QLPreviewPanel!, handle event: NSEvent!) -> Bool {
+        guard event.type == .keyDown, event.keyCode == UInt16(kVK_Space) else { return false }
+        panel.orderOut(nil)
+        return true
+    }
+
+    private func previewed(_ item: QLPreviewItem?) -> Pegged? {
+        liveItems.first { $0.url == item?.previewItemURL }
     }
 
     // MARK: Menu bar
